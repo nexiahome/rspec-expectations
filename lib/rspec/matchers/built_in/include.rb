@@ -102,8 +102,12 @@ module RSpec
           end
         end
 
+        def is_not_quite_a_hash?(obj)
+          obj.respond_to?(:to_hash) && obj.respond_to?(:include?)
+        end
+
         def comparing_hash_to_a_subset?(expected_item)
-          actual.is_a?(Hash) && expected_item.is_a?(Hash)
+          (actual.is_a?(Hash) || is_not_quite_a_hash?(actual)) && expected_item.is_a?(Hash)
         end
 
         def actual_hash_includes?(expected_key, expected_value)
@@ -112,7 +116,7 @@ module RSpec
         end
 
         def comparing_hash_keys?(expected_item)
-          actual.is_a?(Hash) && !expected_item.is_a?(Hash)
+          (actual.is_a?(Hash) || is_not_quite_a_hash?(actual)) && !expected_item.is_a?(Hash)
         end
 
         def actual_hash_has_key?(expected_key)
@@ -141,7 +145,7 @@ module RSpec
         end
 
         def convert_to_hash?(obj)
-          !(::Hash === obj) && obj.respond_to?(:to_hash)
+          !(::Hash === obj) && obj.respond_to?(:to_hash) && !is_not_quite_a_hash?(obj)
         end
       end
     end

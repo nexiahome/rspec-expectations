@@ -33,6 +33,57 @@ class FakeHashWithIndifferentAccess < Hash
   end
 end
 
+# This class overrides include? in a way inconsistent with its to_hash
+class Hashish
+  class << self
+    def from_hash(hsh)
+      new_hsh = new
+      new_hsh_hsh = {}
+      hsh.each do |key, value|
+        new_hsh_hsh[key] = value
+      end
+      new_hsh.instance_variable_set(:@hsh, new_hsh_hsh)
+      new_hsh
+    end
+  end
+
+  def fetch(key)
+    @hsh.fetch(key)
+  end
+
+  def [](key)
+    @hsh[key.to_s]
+  end
+
+  def []=(key, value)
+    @hsh[key.to_s] = value
+  end
+
+  def key?(key)
+    @hsh.key?(key.to_s)
+  end
+
+  def include?(key)
+    @hsh.include?(key)
+  end
+
+  def keys
+    @hsh.keys
+  end
+
+  def empty?
+    @hsh.empty?
+  end
+
+  def to_hash
+    new_hsh = ::Hash.new
+    @hsh.each do |key, value|
+      new_hsh[key] = value
+    end
+    { value: new_hsh }
+  end
+end
+
 RSpec.describe "#include matcher" do
   it "is diffable" do
     expect(include("a")).to be_diffable
@@ -199,6 +250,16 @@ RSpec.describe "#include matcher" do
         def use_string_keys_in_failure_message?
           true
         end
+      end
+    end
+
+    context "for a target that wraps Hash to treat string/symbol keys interchangeably, but returns a weird hash from #to_hash" do
+      it "behaves sort of like a Hash target" do
+        hsh = { key1: "value1", key2: "value2" }
+        ish = Hashish.from_hash(hsh)
+        expect(ish).to include(:key1)
+        expect(ish).to include({ key2: "value2" })
+        expect(ish).to include(hsh)
       end
     end
 
